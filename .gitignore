@@ -1,0 +1,8 @@
+*.obj
+Debug/
+.vs/
+Release/
+x64/
+Internal Aimbot/Debug/
+Internal Aimbot/Release/
+Internal Aimbot/x64/

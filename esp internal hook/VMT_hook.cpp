@@ -12,6 +12,7 @@
 
 VMT_hook::VMT_hook(void** vTable) : m_vTable(vTable)
 {
+	//m_nbFuncs = GetNbrFuncs();
 	m_nbFuncs = GetNbrFuncs();
 	m_originFuncs = new void*[m_nbFuncs];
 	for (unsigned short i = 0; i < m_nbFuncs; i++)
@@ -62,10 +63,10 @@ void* VMT_hook::hook(unsigned short index, void* OurFunc)
 
 	if (index < m_nbFuncs && OurFunc)
 	{
-		//virtual protect
+		VirtualProtect(m_vTable + index, 0x4, PAGE_EXECUTE_READWRITE, &oldProtect);
 		oldFunc = m_vTable[index];
 		m_vTable[index] = OurFunc;
-		//virtual protect restore
+		VirtualProtect(m_vTable + index, 0x4, oldProtect, &oldProtect);
 		return oldFunc;
 	}
 	return nullptr;
@@ -73,11 +74,12 @@ void* VMT_hook::hook(unsigned short index, void* OurFunc)
 
 bool VMT_hook::unhook(unsigned short index)
 {
+	DWORD oldProtect = NULL;
 	if (index < m_nbFuncs)
 	{
-		//virtualprotect -> write 
+		VirtualProtect(m_vTable + index, 0x4, PAGE_EXECUTE_READWRITE, &oldProtect);
 		m_vTable[index] = m_originFuncs[index];
-		//virtualprotect -> restore
+		VirtualProtect(m_vTable + index, 0x4, oldProtect, &oldProtect);
 		return true;
 	}
 	return false;

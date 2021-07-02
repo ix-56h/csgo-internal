@@ -34,24 +34,18 @@ DWORD WINAPI internalMain(HMODULE hMod) {
 #endif 
     bool esp = true;
 
-    //get vtable pointer with GetD3D9Device();
+    // !!! This will get a vtable with functions adresses, but not the vtable of the d3d object in process !!!
     void** vTable = GetD3D9Device();
-    // now we have addr of vtable (or not)
-    //void* d3ddevice[119];
-    //if (GetD3D9Device(d3ddevice, sizeof(d3ddevice)))
+    // now we have a vTable with functions addresses(or not)
     if (vTable)
     {
         //void** vTable = *reinterpret_cast<void***>(addr);
         printf("vTable = %p\nEndScene = %p\nourEndScene = %p\n", vTable, vTable[42], (void*)hkEndScene);
-        //printf("%p\n%p\n", d3ddevice, d3ddevice[42]);
-        // init hooking
-        VMT_hook* vmt = new VMT_hook(vTable);
+        
+        // can't use VMT_hook, so need to use detour
         if (esp == true)
         {
             printf("oEndScene = %p\n", oEndScene);
-            oEndScene = (_EndScene*)vmt->hook(42, (void*)hkEndScene);
-            printf("oEndScene = %p\n", oEndScene);
-            printf("new vTable[42] = %p\n", vTable[42]);
         }
         while (!GetAsyncKeyState(VK_ESCAPE))
         {

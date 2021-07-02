@@ -1,18 +1,11 @@
 #include "VMT_hook.h"
-//	1 : init hook with vtable
-//		1.1: save nmbr funcs
-//		1.2: save copy off addresses in vtables
-// 
-//	2 : use VMT_hook::hook for hook the actual function
-//		2.1: virtual protect and other stuff
-//	3 : use VMT_hook::unhook for restor initial addresses for [index]'th function
-//	4 : VMT_hook::unhookAll for restre all initial addresses
-//		4.1 : for each the vtable and reset all addresses with the savec copy respective index
-// ~VMT_hook destructor call unhookall() and use delete saved vtable copy (free)
-
+/*
+	class : VMT_hook
+	Function : Constructor
+	Purpose : Get vTable based on the vTable passed by argument, create a copy
+*/
 VMT_hook::VMT_hook(void** vTable) : m_vTable(vTable)
 {
-	//m_nbFuncs = GetNbrFuncs();
 	m_nbFuncs = GetNbrFuncs();
 	m_originFuncs = new void*[m_nbFuncs];
 	for (unsigned short i = 0; i < m_nbFuncs; i++)
@@ -21,17 +14,32 @@ VMT_hook::VMT_hook(void** vTable) : m_vTable(vTable)
 	}
 }
 
+/*
+	class : VMT_hook
+	Function : Destructor
+	Purpose : 
+*/
 VMT_hook::~VMT_hook()
 {
 	unhookAll();
 	delete[] m_originFuncs;
 }
 
+/*
+	class : VMT_hook
+	Function : GetByAddr
+	Purpose : Get function in vtable by index and return function address
+*/
 void* VMT_hook::GetByAddr(unsigned short index)
 {
 	return (index > m_nbFuncs ? nullptr : m_vTable[index]);
 }
 
+/*
+	class : VMT_hook
+	Function : GetNbrfuncs
+	Purpose : Return the number of functions in vtable by guessing
+*/
 unsigned short VMT_hook::GetNbrFuncs()
 {
 	unsigned short index = 0; //index
@@ -56,6 +64,11 @@ unsigned short VMT_hook::GetNbrFuncs()
 	return index;
 }
 
+/*
+	class : VMT_hook
+	Function : hook
+	Purpose : Get the VMT index function to hook and a pointer to our function and replace the vTable entry by our address
+*/
 void* VMT_hook::hook(unsigned short index, void* OurFunc)
 {
 	DWORD oldProtect = NULL;
@@ -72,6 +85,11 @@ void* VMT_hook::hook(unsigned short index, void* OurFunc)
 	return nullptr;
 }
 
+/*
+	class : VMT_hook
+	Function : unhook
+	Purpose : Restore the vTable entry pointed by dereferencing index and set the original function address
+*/
 bool VMT_hook::unhook(unsigned short index)
 {
 	DWORD oldProtect = NULL;
@@ -85,6 +103,11 @@ bool VMT_hook::unhook(unsigned short index)
 	return false;
 }
 
+/*
+	class : VMT_hook
+	Function : unhookAll
+	Purpose : Restore all vTable entries with original functions addresses
+*/
 bool VMT_hook::unhookAll()
 {
 	bool ret = true;

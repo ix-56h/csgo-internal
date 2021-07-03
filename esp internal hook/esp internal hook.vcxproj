@@ -155,6 +155,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="D3Device.h" />
+    <ClInclude Include="detour.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="internal.h" />
     <ClInclude Include="offsets.h" />
@@ -162,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3Device.cpp" />
+    <ClCompile Include="detour.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="VMT_hook.cpp" />
   </ItemGroup>

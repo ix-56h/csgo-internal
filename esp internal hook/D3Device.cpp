@@ -2,6 +2,10 @@
 
 static HWND window;
 
+/*
+	Function : EnumWindowsCallB()
+	Purpose : Callback for EnumWindows, he return false and break EnumWindows, before he set static HWND window to the good handle
+*/
 BOOL CALLBACK EnumWindowsCallB(HWND handle, LPARAM lParam)
 {
 	DWORD curProcId;
@@ -12,6 +16,10 @@ BOOL CALLBACK EnumWindowsCallB(HWND handle, LPARAM lParam)
 	return false;
 }
 
+/*
+	Function : GetWindow()
+	Purpose : Return the window handle of the current process
+*/
 HWND GetWindow()
 {
 	window = NULL;
@@ -19,6 +27,12 @@ HWND GetWindow()
 	return window;
 }
 
+/*
+	Function : GetD3D9Device()
+	Purpose : Return a void**vTable containing functions addresses of the object D3DBase (Begin/EndScene...)
+			  Create a dummy device and delete him after copying the vTable.
+		!!! Return a copy of the dummyDevice vTable, containing all functions addresses who's loaded in memory !!!
+*/
 //bool GetD3D9Device(void** pTable, size_t size)
 void **GetD3D9Device()
 {

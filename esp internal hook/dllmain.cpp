@@ -2,6 +2,7 @@
 #include "internal.h"
 #include "D3Device.h"
 #include "VMT_hook.h"
+#include "detour.h"
 #include <windows.h>
 #include <iostream>
 
@@ -39,9 +40,11 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     // now we have a vTable with functions addresses(or not)
     if (vTable)
     {
+        detour *EndSceneDetour = new detour(vTable[42], hkEndScene, 5);
         //void** vTable = *reinterpret_cast<void***>(addr);
-        printf("vTable = %p\nEndScene = %p\nourEndScene = %p\n", vTable, vTable[42], (void*)hkEndScene);
-        
+        printf("EndScene = %p\nourEndScene = %p\n", vTable[42], (void*)hkEndScene);
+        oEndScene = (_EndScene*)vTable[42];
+        EndSceneDetour->hook();
         // can't use VMT_hook, so need to use detour
         if (esp == true)
         {
@@ -54,11 +57,11 @@ DWORD WINAPI internalMain(HMODULE hMod) {
             if (GetAsyncKeyState(VK_DELETE))
             {
                 esp = !esp;
-                if (esp == false)
-                    vmt->unhook(42);
+                //if (esp == false)
+                    //vmt->unhook(42);
             }
         }
-        delete vmt;
+        //delete vmt;
     }
 #ifdef _DEBUG
     if (f != nullptr) fclose(f);

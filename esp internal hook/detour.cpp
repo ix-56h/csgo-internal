@@ -5,9 +5,11 @@
 	Function : Constructor
 	Purpose : Init private variables
 */
-detour::detour(void *src, void* dst, size_t len) : _src(src), _dst(dst), _len(len)
+detour::detour(char* src, char* dst, size_t len) : _src(src), _dst(dst), _len(len)
 {
-	_stolenBytes = new BYTE[len];
+	_stolenBytes = VirtualAlloc(0, len + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (len >= 5 && _stolenBytes != NULL)
+		memcpy(_stolenBytes, _src, _len);
 }
 
 /*
@@ -17,10 +19,10 @@ detour::detour(void *src, void* dst, size_t len) : _src(src), _dst(dst), _len(le
 */
 detour::~detour()
 {
-	//if hooked
-	//	unhook();
-	delete[]_stolenBytes;
+	if (_stolenBytes != NULL)
+		VirtualFree(_stolenBytes, 0, MEM_RELEASE);
 }
+
 /*
 	class : detour
 	Function : hook
@@ -29,23 +31,16 @@ detour::~detour()
 bool detour::hook()
 {
 	// check if the minimum len is respected, 5 = minimum bytes for jmp
-	if (_len < 5)
+	if (_len < 5 || _stolenBytes == NULL)
 		return false;
-
 	DWORD protect;
 	VirtualProtect(_src, _len, PAGE_EXECUTE_READWRITE, &protect);
-	
-	//TODO : memcopy stolen bytes used for trampoline
-	memcpy(_stolenBytes, _src, _len);
 
 	// safe : NOPing (basic detour good practice)
 	memset(_src, 0x90, _len);
 
-	//VirtualProtect(_src, _len, protect, &protect);
-	//return false;
-
 	DWORD relativeAddr = ((DWORD)_dst - (DWORD)_src) - _len;
-	
+
 	// 0x90 = NOP, 0xE9 = jmp
 	//set jmp
 	*(BYTE*)_src = 0xE9;
@@ -55,6 +50,34 @@ bool detour::hook()
 
 	return true;
 }
+/*
+	class : detour
+	Function : trampHook
+	Purpose : Setup a gateway with stolen bytes
+*/
+char* detour::trampHook()
+{
+	// check if the minimum len is respected, 5 = minimum bytes for jmp
+	if (_len < 5 || _stolenBytes == NULL)
+		return nullptr;
+	//memcopy stolen bytes used for trampoline (_stolenBytes is our gateway)
+	memcpy(_stolenBytes, _src, _len);
+
+	intptr_t gatewayRelativeAddr = ((intptr_t)_src - (intptr_t)_stolenBytes) - 5;
+
+	// 0x90 = NOP, 0xE9 = jmp
+	//set jmp AFTER the rewritten bytes
+	*(char*)((intptr_t)_stolenBytes + _len) = 0xE9;
+	*(intptr_t*)((intptr_t)_stolenBytes + _len + 1) = gatewayRelativeAddr;
+
+	if (hook() == false)
+	{
+		VirtualFree(_stolenBytes, 0, MEM_RELEASE);
+		return nullptr;
+	}
+	
+	return (char*)_stolenBytes;
+}
 
 /*
 	class : detour
@@ -63,5 +86,10 @@ bool detour::hook()
 */
 bool detour::unhook()
 {
+	DWORD protect;
+	VirtualProtect(_src, _len, PAGE_EXECUTE_READWRITE, &protect);
+	memcpy(_src, _stolenBytes, _len);
+	VirtualProtect(_src, _len, protect, &protect);
+
 	return false;
 }

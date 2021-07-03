@@ -4,13 +4,14 @@
 class detour
 {
 public:
-	detour(void* src, void* dst, size_t len);
+	detour(char* src, char* dst, size_t len);
 	~detour();
 	bool hook();
+	char* trampHook();
 	bool unhook();
 private:
-	BYTE* _stolenBytes;
-	void* _src;
-	void* _dst;
+	void* _stolenBytes;
+	char* _src;
+	char* _dst;
 	size_t _len;
 };

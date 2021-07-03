@@ -11,8 +11,8 @@
 // Declare a pointer on this function prototype
 //EndScene *oEndScene = NULL;
 
-using _EndScene = HRESULT(APIENTRY)(LPDIRECT3DDEVICE9);
-_EndScene *oEndScene = NULL;
+typedef HRESULT(APIENTRY* _EndScene)(LPDIRECT3DDEVICE9 pDevice);
+_EndScene oEndScene = nullptr;
 
 uintptr_t GetModuleBaseAddress(const wchar_t* moduleName) {
     return (uintptr_t)GetModuleHandleW(moduleName);
@@ -40,11 +40,11 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     // now we have a vTable with functions addresses(or not)
     if (vTable)
     {
-        detour *EndSceneDetour = new detour(vTable[42], hkEndScene, 5);
-        //void** vTable = *reinterpret_cast<void***>(addr);
+        detour *EndSceneDetour = new detour((char*)vTable[42], (char*)hkEndScene, 7);
+        //void** vTable = *reinterprest_cast<void***>(addr);
         printf("EndScene = %p\nourEndScene = %p\n", vTable[42], (void*)hkEndScene);
-        oEndScene = (_EndScene*)vTable[42];
-        EndSceneDetour->hook();
+        //EndSceneDetour->hook();
+        oEndScene = (_EndScene)EndSceneDetour->trampHook();
         // can't use VMT_hook, so need to use detour
         if (esp == true)
         {
@@ -61,7 +61,9 @@ DWORD WINAPI internalMain(HMODULE hMod) {
                     //vmt->unhook(42);
             }
         }
-        //delete vmt;
+        if (oEndScene != nullptr)
+            EndSceneDetour->unhook();
+        delete EndSceneDetour;
     }
 #ifdef _DEBUG
     if (f != nullptr) fclose(f);

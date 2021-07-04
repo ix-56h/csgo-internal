@@ -11,7 +11,7 @@
 // Declare a pointer on this function prototype
 //EndScene *oEndScene = NULL;
 
-typedef HRESULT(APIENTRY* _EndScene)(LPDIRECT3DDEVICE9 pDevice);
+typedef HRESULT(__stdcall* _EndScene)(LPDIRECT3DDEVICE9 pDevice);
 _EndScene oEndScene = nullptr;
 
 uintptr_t GetModuleBaseAddress(const wchar_t* moduleName) {
@@ -20,7 +20,7 @@ uintptr_t GetModuleBaseAddress(const wchar_t* moduleName) {
 
 //void hkFunc(void) { void }
 
-HRESULT APIENTRY hkEndScene(LPDIRECT3DDEVICE9 pDevice)
+HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
     printf("Hooked\n");
     // call original EndScene

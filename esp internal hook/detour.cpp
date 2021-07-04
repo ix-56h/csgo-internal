@@ -39,17 +39,18 @@ bool detour::hook()
 	// safe : NOPing (basic detour good practice)
 	memset(_src, 0x90, _len);
 
-	DWORD relativeAddr = ((DWORD)_dst - (DWORD)_src) - _len;
+	intptr_t relativeAddr = ((intptr_t)_dst - (intptr_t)_src) - 5;
 
 	// 0x90 = NOP, 0xE9 = jmp
 	//set jmp
 	*(BYTE*)_src = 0xE9;
-	*(DWORD*)((DWORD)_src + 1) = relativeAddr;
+	*(intptr_t*)((intptr_t)_src + 1) = relativeAddr;
 
 	VirtualProtect(_src, _len, protect, &protect);
 
 	return true;
 }
+#include <stdio.h>
 /*
 	class : detour
 	Function : trampHook
@@ -64,7 +65,7 @@ char* detour::trampHook()
 	memcpy(_stolenBytes, _src, _len);
 
 	intptr_t gatewayRelativeAddr = ((intptr_t)_src - (intptr_t)_stolenBytes) - 5;
-
+	printf("%p - %p\n", _src, _stolenBytes);
 	// 0x90 = NOP, 0xE9 = jmp
 	//set jmp AFTER the rewritten bytes
 	*(char*)((intptr_t)_stolenBytes + _len) = 0xE9;

@@ -1,6 +1,16 @@
 #include "D3Device.h"
 
 static HWND window;
+size_t windowHeight, windowWidth;
+extern LPDIRECT3DDEVICE9 gDevice;
+
+void GetViewportSize()
+{
+	D3DVIEWPORT9 Viewport;
+	gDevice->GetViewport(&Viewport);
+	windowWidth = Viewport.Width;
+	windowHeight = Viewport.Height;
+}
 
 /*
 	Function : EnumWindowsCallB()
@@ -24,6 +34,7 @@ HWND GetWindow()
 {
 	window = NULL;
 	EnumWindows(EnumWindowsCallB, NULL);
+
 	return window;
 }
 

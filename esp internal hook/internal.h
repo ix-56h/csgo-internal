@@ -2,16 +2,23 @@
 #define INTERNAL_H
 #pragma comment(lib,"d3d9.lib")
 #pragma comment(lib,"d3dx9.lib")
-//include
+
+//includes
 #include <d3d9.h>
 #include <d3dx9.h>
 
+#include <inttypes.h>
+
+#include "player.h"
+#include "utils.h"
+#include "ClientEngine.h"
+#include "draw.h"
+
 #include "offsets.h"
 
-uintptr_t GetModuleBaseAddress(const wchar_t* moduleName);
-//Vec3 bones(pEntity* ent, int boneID);
+#define ABS(x) ((x < 0) ? (-x) : (x))
 
 struct view_matrix_t {
 	float matrix[16];
 };
-#endif#pragma once
+#endif

@@ -77,6 +77,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(DXSDK_DIR)\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)\Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -108,8 +110,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;ESPINTERNALHOOK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -154,17 +157,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ClientEngine.h" />
     <ClInclude Include="D3Device.h" />
     <ClInclude Include="detour.h" />
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="draw.h" />
     <ClInclude Include="internal.h" />
     <ClInclude Include="offsets.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="VMT_hook.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ClientEngine.cpp" />
     <ClCompile Include="D3Device.cpp" />
     <ClCompile Include="detour.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="draw.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="VMT_hook.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

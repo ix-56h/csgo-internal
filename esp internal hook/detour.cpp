@@ -50,7 +50,7 @@ bool detour::hook()
 
 	return true;
 }
-#include <stdio.h>
+
 /*
 	class : detour
 	Function : trampHook
@@ -65,7 +65,7 @@ char* detour::trampHook()
 	memcpy(_stolenBytes, _src, _len);
 
 	intptr_t gatewayRelativeAddr = ((intptr_t)_src - (intptr_t)_stolenBytes) - 5;
-	printf("%p - %p\n", _src, _stolenBytes);
+	
 	// 0x90 = NOP, 0xE9 = jmp
 	//set jmp AFTER the rewritten bytes
 	*(char*)((intptr_t)_stolenBytes + _len) = 0xE9;

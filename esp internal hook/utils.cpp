@@ -1,7 +1,7 @@
 #include "utils.h"
 
 extern IClient eClient;
-extern size_t windowHeight, windowWidth;
+extern IEngine eEngine;
 
 uintptr_t GetModuleBaseAddress(const wchar_t* moduleName) {
     return (uintptr_t)GetModuleHandleW(moduleName);
@@ -31,7 +31,85 @@ bool WorldToScreen(Vec3 pos, Vec2& screen) {
     NDC.y = clipCoords.y / clipCoords.w;
     NDC.z = clipCoords.z / clipCoords.w;
 
-    screen.x = (windowWidth / 2 * NDC.x) + (NDC.x + windowWidth / 2);
-    screen.y = -(windowHeight / 2 * NDC.y) + (NDC.y + windowHeight / 2);
+    screen.x = (eEngine.width / 2 * NDC.x) + (NDC.x + eEngine.width / 2);
+    screen.y = -(eEngine.height / 2 * NDC.y) + (NDC.y + eEngine.height / 2);
     return true;
+}
+
+Vec3 calcAngle(Vec3 src, Vec3 dst)
+{
+    Vec3 delta = dst - src;
+    float hyp = delta.Length();
+    float pitch = -asinf(delta.z / hyp) * (180 / PI);
+    float yaw = atan2f(delta.y, delta.x) * (180 / PI);
+    delta.z = 0;
+
+    if (pitch >= -89 && pitch <= 89 && yaw >= -180 && yaw <= 180)
+    {
+        delta.x = pitch;
+        delta.y = yaw;
+    }
+    return (delta);
+}
+
+float getDistance(Vec3 src, Vec3 dst)
+{
+    Vec3 delta = dst - src;
+
+    return (delta.Length());
+}
+
+bool betterTarget(Vec3 src, pEntity* entity, float* curClosestDistance, Vec3* curClosestAngle)
+{
+    //here we can check viewangle, distance, if walls etc
+    //actually just check de distance between the Current closest enemy and another enemy
+
+
+    //Vec3 screenPos = WorldToScreen(src, pClientState + hazedumper::signatures::dwViewMatrix);
+    Vec3 newAngle = calcAngle(src, entity->vecOrigin);
+    Vec3 diff = newAngle - *eEngine.viewAngle;
+    diff.Normalize();
+    float dist = getDistance(src, entity->vecOrigin);
+    if (((diff.y <= curClosestAngle->y && diff.y >= -(curClosestAngle->y))
+        && (diff.x <= curClosestAngle->x && diff.x >= -(curClosestAngle->x)))
+        || (dist < *curClosestDistance && (diff.y <= 7 && diff.y >= -7)
+            && (diff.x <= 7 && diff.x >= -7))
+        )
+    {
+        //if (dist < *curClosestDistance)
+        //{
+        *curClosestAngle = diff;
+        *curClosestDistance = dist;
+        return (true);
+        //}
+    }
+    return false;
+
+    //REALLY NEED TO REFACTOR, can't access to clientstate width etc without global
+    // this is not possible, tomorow just refacto and select target if closest to cursor with world2screen
+
+    //return (getDistance(src, entity->vecOrigin) < curClosestDistance);
+}
+
+pEntity* getClosestEntity()
+{
+    uint32_t i = 0;
+    pEntity* closestPtr = nullptr;
+    float closestDistance = 1000;
+    Vec3 closestAngle = { 15, 15, 0 };
+    //for (size_t i = 1; i < eClient.maxPlayers; i++)
+    for (size_t i = 1; i < 4; i++)
+    {
+        pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
+        if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant)
+            continue;
+        //if ((uintptr_t)entity == (uintptr_t)(eClient.localPlayer))
+        //    continue;
+        if (eClient.localPlayer->iHealth < 1 || entity->iHealth < 1)
+            continue;
+        if (betterTarget(eClient.localPlayer->vecOrigin, entity, &closestDistance, &closestAngle))
+            closestPtr = entity;
+    }
+    return (closestPtr);
+
 }

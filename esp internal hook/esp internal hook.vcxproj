@@ -165,6 +165,7 @@
     <ClInclude Include="offsets.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="vector.h" />
     <ClInclude Include="VMT_hook.h" />
   </ItemGroup>
   <ItemGroup>
@@ -173,6 +174,7 @@
     <ClCompile Include="detour.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="draw.cpp" />
+    <ClCompile Include="player.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="VMT_hook.cpp" />
   </ItemGroup>

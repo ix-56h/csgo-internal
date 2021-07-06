@@ -3,9 +3,9 @@
 #include <cstddef>
 // 2021-06-13 13:51:14.832559600 UTC
 
-namespace hazedumper {
+namespace ofs {
 	constexpr ::std::int64_t timestamp = 1623592274;
-	namespace netvars {
+	namespace nv {
 		constexpr ::std::ptrdiff_t cs_gamerules_data = 0x0;
 		constexpr ::std::ptrdiff_t m_ArmorValue = 0xB37C;
 		constexpr ::std::ptrdiff_t m_Collision = 0x320;
@@ -98,8 +98,8 @@ namespace hazedumper {
 		constexpr ::std::ptrdiff_t m_vecViewOffset = 0x12C;
 		constexpr ::std::ptrdiff_t m_viewPunchAngle = 0x3020;
 		constexpr ::std::ptrdiff_t m_zoomLevel = 0x33D0;
-	} // namespace netvars
-	namespace signatures {
+	}
+	namespace st {
 		constexpr ::std::ptrdiff_t anim_overlays = 0x2980;
 		constexpr ::std::ptrdiff_t clientstate_choked_commands = 0x4D30;
 		constexpr ::std::ptrdiff_t clientstate_delta_ticks = 0x174;
@@ -159,4 +159,3 @@ namespace hazedumper {
 		constexpr ::std::ptrdiff_t set_abs_origin = 0x1E09C0;
 	} // namespace signatures
 } // namespace hazedumper
-#pragma once

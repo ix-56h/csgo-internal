@@ -1,5 +1,5 @@
-#ifndef ENGINE_H
-#define ENGINE_H
+#pragma once
+#include "internal.h"
 
 class IClient
 {
@@ -15,10 +15,12 @@ public:
 	uint32_t  maxPlayers;
 
 	pEntity* localPlayer;
+	uint32_t  aimSmooth;
+
 	float viewMatrix[16];
 	void updateVM();
 };
-/*
+
 class IEngine
 {
 public:
@@ -27,8 +29,4 @@ public:
 	uint32_t width;
 	uint32_t height;
 	Vec3* viewAngle;
-
-	void getScreenSize(); // not engine
 };
-*/
-#endif

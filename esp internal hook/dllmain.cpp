@@ -7,7 +7,8 @@
 #include <iostream>
 
 IClient eClient;
-extern size_t windowHeight, windowWidth;
+IEngine eEngine;
+
 LPDIRECT3DDEVICE9 gDevice;
 // typedef the function prototype of EndScene
 //typedef HRESULT APIENTRY EndScene(LPDIRECT3DDEVICE9);
@@ -25,55 +26,26 @@ HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
         gDevice = pDevice;
         return oEndScene(gDevice);
     }
-    for (size_t i = 0; i < eClient.maxPlayers; i++)
+    //for (size_t i = 1; i < eClient.maxPlayers; i++)
+    for (size_t i = 1; i < 4; i++)
     {
         pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
-        if (!entity)
+        if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant)
             continue;
-        if ((uintptr_t)entity == (uintptr_t)(eClient.localPlayer))
+        if (entity->iHealth < 1)
             continue;
-        if (eClient.localPlayer->iHealth < 1 || entity->iHealth < 1)
-            continue;
-        if (eClient.localPlayer->iTeamNum == entity->iTeamNum)
-            continue;
-        if (!entity->bDormant)
-        {
             Vec2 Foot2d, Head2d;
-            if (WorldToScreen(entity->vecOrigin, Foot2d))
+        eClient.updateVM();
+        if (WorldToScreen(entity->vecOrigin, Foot2d))
+        {
+            Vec3 Head3d = GetBonePos(entity, 8);
+            Head3d.z += 8;
+            DrawLine(Foot2d.x, Foot2d.y, eEngine.width / 2, eEngine.height, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
+            if (WorldToScreen(Head3d, Head2d))
             {
-                Vec3 Head3d = GetBonePos(entity, 8);
-                Head3d.z += 8;
-                DrawLine(Foot2d.x, Foot2d.y, windowWidth / 2, windowHeight, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
-                if (WorldToScreen(Head3d, Head2d))
-                {
-                    DrawEspBox2D(Foot2d, Head2d, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
-
-                    int height = ABS(Foot2d.y - Head2d.y);
-                    int dX = (Foot2d.x - Head2d.x);
-
-                    float healthPerc = entity->iHealth / 100.f;
-                    float armorPerc = entity->armorValue / 100.f;
-
-                    Vec2 botHealth, topHealth, botArmor, topArmor;
-                    int healthHeight = height * healthPerc;
-                    int armorHeight = height * armorPerc;
-
-                    botHealth.y = botArmor.y = Foot2d.y;
-
-                    botHealth.x = Foot2d.x - (height / 4) - 2;
-                    botArmor.x = Foot2d.x + (height / 4) + 2;
-
-                    topHealth.y = Head2d.y + height - healthHeight;
-                    topArmor.y = Head2d.y + height - armorHeight;
-
-                    topHealth.x = Foot2d.x - (height / 4) - 2 - (dX * healthPerc);
-                    topArmor.x = Foot2d.x + (height / 4) + 2 - (dX * armorPerc);
-
-                    DrawLineVec(botHealth, topHealth, 5, D3DCOLOR_ARGB(255, 46, 139, 87));
-                    DrawLineVec(botArmor, topArmor, 5, D3DCOLOR_ARGB(255, 30, 144, 255));
-                }
+                DrawEspBox2D(Foot2d, Head2d, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
+                DrawHealthArmor(Foot2d, Head2d, 4, entity);
             }
-            
         }
     }
     // call original EndScene
@@ -86,37 +58,53 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
 #endif 
-    bool esp = true;
+    bool esp = false, aimbot = false;
 
     // !!! This will get a vtable with functions adresses, but not the vtable of the d3d object in process !!!
     void** vTable = GetD3D9Device();
     // now we have a vTable with functions addresses(or not)
     if (vTable)
     {
-        // getting viewport resolution
-        
-        detour *EndSceneDetour = new detour((char*)vTable[42], (char*)hkEndScene, 7);
-        //void** vTable = *reinterprest_cast<void***>(addr);
-        //printf("EndScene = %p\nourEndScene = %p\n", vTable[42], (void*)hkEndScene);
-        //printf("viewMatrix = %" PRIxPTR "\n", (uintptr_t)(eClient.pClientBase + hazedumper::signatures::dwViewMatrix));
-        //EndSceneDetour->hook();
-        oEndScene = (_EndScene)EndSceneDetour->trampHook();
-        // can't use VMT_hook, so need to use detour
-
-        while (!GetAsyncKeyState(VK_ESCAPE))
+        detour* EndSceneDetour = new detour((char*)vTable[42], (char*)hkEndScene, 7);
+        // VK_PRIOR = Page Up
+        // VK_END = End
+        // VK_NEXT = Page dn
+        // VK_HOME = home
+        // 0x30 = 0 (key)
+        while (!GetAsyncKeyState(VK_END))
         {
-            if (!windowHeight && gDevice)
+            if (!eEngine.height && gDevice)
                 GetViewportSize();
-            eClient.updateVM();
-            if (GetAsyncKeyState(VK_DELETE))
+            if (GetAsyncKeyState(VK_PRIOR) & 1)
+                eClient.aimSmooth < 15000 ? eClient.aimSmooth += 150 : 0;
+            if (GetAsyncKeyState(VK_NEXT) & 1)
+                eClient.aimSmooth > 450 ? eClient.aimSmooth -= 150 : 0;
+            /* FOR NO RECOIL CONTROL SMOOTH VALUE
+            if (GetAsyncKeyState(VK_MENU))
+            {
+                if (GetAsyncKeyState(VK_PRIOR))
+                    eClient.recoilSmooth < 30000 ? eClient.recoilSmooth += 1000 : 0;
+                if (GetAsyncKeyState(VK_NEXT))
+                    eClient.recoilSmooth > 1000 ? eClient.recoilSmooth -= 1000 : 0;
+            }
+            */
+            if (GetAsyncKeyState(0x30) & 1)
             {
                 esp = !esp;
-                if (esp == false)
+                if (esp == true)
+                    oEndScene = (_EndScene)EndSceneDetour->trampHook();
+                else
                     EndSceneDetour->unhook();
             }
+            if (GetAsyncKeyState(0x39) & 1)
+                aimbot = !aimbot;
+            if (aimbot == true)
+                eClient.localPlayer->AimAt(getClosestEntity());
         }
         if (oEndScene != nullptr)
+        {
             EndSceneDetour->unhook();
+        }
         delete EndSceneDetour;
     }
 #ifdef _DEBUG

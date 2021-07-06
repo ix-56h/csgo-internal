@@ -5,19 +5,19 @@ wchar_t clientName[] = { L"client.dll" };
 wchar_t engineName[] = { L"engine.dll" };
 
 extern IClient eClient;
-//extern IEngine eEngine;
+extern IEngine eEngine;
 
 IClient::IClient()
 {
 	pClientBase = GetModuleBaseAddress(clientName);
 	pEngineBase = GetModuleBaseAddress(engineName);
 
-	pLocalPlayer = pClientBase + hazedumper::signatures::dwEntityList;
-	pEntityList = pClientBase + hazedumper::signatures::dwEntityList + 0x10;
-	pClientState = *(uintptr_t*)(pEngineBase + hazedumper::signatures::dwClientState);
+	pLocalPlayer = pClientBase + ofs::st::dwEntityList;
+	pEntityList = pClientBase + ofs::st::dwEntityList + 0x10;
+	pClientState = *(uintptr_t*)(pEngineBase + ofs::st::dwClientState);
 
-	maxPlayers = *reinterpret_cast<uint32_t*>(pClientState + hazedumper::signatures::dwClientState_MaxPlayer);
-
+	maxPlayers = *reinterpret_cast<uint32_t*>(pClientState + ofs::st::dwClientState_MaxPlayer);
+	aimSmooth = 1337;
 	pEntity* lp = *reinterpret_cast<pEntity**>(pLocalPlayer);
 	localPlayer = lp;
 	updateVM();
@@ -25,21 +25,14 @@ IClient::IClient()
 
 void IClient::updateVM()
 {
-	memcpy(&viewMatrix, (PBYTE*)(pClientBase + hazedumper::signatures::dwViewMatrix), sizeof(viewMatrix));
+	memcpy(&viewMatrix, (PBYTE*)(pClientBase + ofs::st::dwViewMatrix), sizeof(viewMatrix));
 }
 
-/*
+
 IEngine::IEngine()
 {
-	width = *reinterpret_cast<int*>(eClient.pEngineBase + 0x38AE5CC);
-	height = *reinterpret_cast<int*>(eClient.pEngineBase + 0x38AE5C0);
+	width = 0;
+	height = 0;
 
-	viewAngle = (Vec3*)(eClient.pClientState + hazedumper::signatures::dwClientState_ViewAngles);
+	viewAngle = (Vec3*)(eClient.pClientState + ofs::st::dwClientState_ViewAngles);
 }
-
-void IEngine::getScreenSize()
-{
-	width = *reinterpret_cast<uint32_t*>(eClient.pEngineBase + 0x38AE5CC);
-	height = *reinterpret_cast<uint32_t*>(eClient.pEngineBase + 0x38AE5C0);
-}
-*/

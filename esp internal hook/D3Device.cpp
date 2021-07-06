@@ -1,15 +1,20 @@
 #include "D3Device.h"
+#include "ClientEngine.h"
 
 static HWND window;
-size_t windowHeight, windowWidth;
 extern LPDIRECT3DDEVICE9 gDevice;
+extern IEngine eEngine;
 
+/*
+	Function : GetViewportSize()
+	Purpose : get the width and the height of the current device
+*/
 void GetViewportSize()
 {
 	D3DVIEWPORT9 Viewport;
 	gDevice->GetViewport(&Viewport);
-	windowWidth = Viewport.Width;
-	windowHeight = Viewport.Height;
+	eEngine.width = Viewport.Width;
+	eEngine.height = Viewport.Height;
 }
 
 /*
@@ -47,15 +52,10 @@ HWND GetWindow()
 //bool GetD3D9Device(void** pTable, size_t size)
 void **GetD3D9Device()
 {
-	// check params
-	//if (!pTable || !size)
-	//	return false;
-
 	// create IDirect3d9interface and get interface returned
 	IDirect3D9* pD3D = Direct3DCreate9(D3D_SDK_VERSION);
 	if (!pD3D)
 		return nullptr;
-	//	return false;
 
 	IDirect3DDevice9 *pDummyDevice = NULL;
 
@@ -78,17 +78,13 @@ void **GetD3D9Device()
 		if (dummyDevice != D3D_OK)
 		{
 			pD3D->Release();
-			//return false;
 			return nullptr;
 		}
 	}
 	// Copy the vTable into pTable
-	//memcpy(pTable, *reinterpret_cast<void***>(pDummyDevice), size);
 	void** ret = *reinterpret_cast<void***>(pDummyDevice);
-	//void* ret = (void*)pDummyDevice;
 	//Clean memory
 	pD3D->Release();
 	pDummyDevice->Release();
-	//return true;
 	return ret;
 }

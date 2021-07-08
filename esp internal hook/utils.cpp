@@ -91,14 +91,39 @@ bool betterTarget(Vec3 src, pEntity* entity, float* curClosestDistance, Vec3* cu
     //return (getDistance(src, entity->vecOrigin) < curClosestDistance);
 }
 
+pEntity* closestOne = nullptr;
+
 pEntity* getClosestEntity()
 {
     uint32_t i = 0;
     pEntity* closestPtr = nullptr;
-    float closestDistance = 1000;
+    float closestDistance = 500;
     Vec3 closestAngle = { 15, 15, 0 };
-    //for (size_t i = 1; i < eClient.maxPlayers; i++)
-    for (size_t i = 1; i < 4; i++)
+    for (size_t i = 0; i < eClient.maxPlayers; i++)
+        //for (size_t i = 1; i < 4; i++)
+    {
+        pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
+        if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant || closestOne == entity)
+            continue;
+        if ((uintptr_t)entity == (uintptr_t)(eClient.localPlayer))
+            continue;
+        if (eClient.localPlayer->iHealth < 1 || entity->iHealth < 1)
+            continue;
+        if (betterTarget(eClient.localPlayer->vecOrigin, entity, &closestDistance, &closestAngle))
+            closestPtr = entity;
+    }
+    return (closestPtr);
+
+}
+/*
+pEntity* getClosestEntity()
+{
+    uint32_t i = 0;
+    pEntity* closestPtr = nullptr;
+    float closestDistance = 500;
+    Vec3 closestAngle = { 15, 15, 0 };
+    for (size_t i = 1; i < eClient.maxPlayers; i++)
+        //for (size_t i = 1; i < 4; i++)
     {
         pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
         if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant)
@@ -111,5 +136,59 @@ pEntity* getClosestEntity()
             closestPtr = entity;
     }
     return (closestPtr);
+}*/
 
+DWORD WINAPI aimbotTH(void* smooth)
+{
+    while (1)
+    {
+        eClient.aimSmooth = *(int*)smooth;
+        eClient.localPlayer->AimAt(getClosestEntity());
+    }
+}
+
+pEntity* getClosestEntityFOV()
+{
+    int aimFOV = 10;
+    float lowestHypot = 999;
+    pEntity* bestTarget = nullptr;
+
+    int midX = eEngine.width / 2;
+    int midY = eEngine.height / 2;
+    float multX = midX / 90;
+    float size = (aimFOV * multX);
+
+    for (size_t i = 0; i < eClient.maxPlayers; i++)
+    {
+        pEntity* curTarget = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
+
+        if (!curTarget || curTarget == nullptr)
+            continue;
+
+        if (curTarget->iTeamNum == eClient.localPlayer->iTeamNum || curTarget->iHealth < 1 || curTarget->isDormant)
+            continue;
+
+        Vec3 entPos = GetBonePos(curTarget, 8);
+        Vec2 screenPos;
+        if (WorldToScreen(entPos, screenPos))
+        {
+
+            float hypotenuse = sqrtf((midX - screenPos.x) * (midX - screenPos.x) + (midY - screenPos.y) * (midY - screenPos.y));
+            if (hypotenuse < size && hypotenuse < lowestHypot)
+            {
+                lowestHypot = hypotenuse;
+                bestTarget = curTarget;
+            }
+        }
+    }
+    return bestTarget;
+}
+
+DWORD WINAPI aimbotFOV(void* smooth)
+{
+    while (1)
+    {
+        eClient.aimSmooth = *(int*)smooth;
+        eClient.localPlayer->AimAt(getClosestEntityFOV());
+    }
 }

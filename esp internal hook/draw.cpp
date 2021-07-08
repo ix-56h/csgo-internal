@@ -35,7 +35,7 @@ void DrawEspBox2D(Vec2 top, Vec2 bot, int thickness, D3DCOLOR color) {
 	DrawLineVec(tl, bl, thickness, color);
 	DrawLineVec(tr, br, thickness, color);
 }
-#include <stdio.h>
+
 void DrawHealthArmor(Vec2 Foot2d, Vec2 Head2d, int thickness, pEntity* entity)
 {
     int height = ABS(Foot2d.y - Head2d.y);

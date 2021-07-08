@@ -8,6 +8,7 @@
 
 IClient eClient;
 IEngine eEngine;
+bool esp = false, aimbot = false, aimbotF = false;
 
 LPDIRECT3DDEVICE9 gDevice;
 // typedef the function prototype of EndScene
@@ -26,25 +27,26 @@ HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
         gDevice = pDevice;
         return oEndScene(gDevice);
     }
-    //for (size_t i = 1; i < eClient.maxPlayers; i++)
-    for (size_t i = 1; i < 4; i++)
+    if (esp)
     {
-        pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
-        if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant)
-            continue;
-        if (entity->iHealth < 1)
-            continue;
-            Vec2 Foot2d, Head2d;
-        eClient.updateVM();
-        if (WorldToScreen(entity->vecOrigin, Foot2d))
+        for (size_t i = 0; i < eClient.maxPlayers; i++)
         {
-            Vec3 Head3d = GetBonePos(entity, 8);
-            Head3d.z += 8;
-            DrawLine(Foot2d.x, Foot2d.y, eEngine.width / 2, eEngine.height, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
-            if (WorldToScreen(Head3d, Head2d))
+            pEntity* entity = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
+            if (!entity || eClient.localPlayer->iTeamNum == entity->iTeamNum || entity->isDormant || entity == eClient.localPlayer)
+                continue;
+            if (entity->iHealth < 1)
+                continue;
+            Vec2 Foot2d, Head2d;
+            if (WorldToScreen(entity->vecOrigin, Foot2d))
             {
-                DrawEspBox2D(Foot2d, Head2d, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
-                DrawHealthArmor(Foot2d, Head2d, 4, entity);
+                Vec3 Head3d = GetBonePos(entity, 8);
+                Head3d.z += 8;
+                DrawLine(Foot2d.x, Foot2d.y, eEngine.width / 2, eEngine.height, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
+                if (WorldToScreen(Head3d, Head2d))
+                {
+                    DrawEspBox2D(Foot2d, Head2d, 2, D3DCOLOR_ARGB(255, 255, 0, 0));
+                    DrawHealthArmor(Foot2d, Head2d, 4, entity);
+                }
             }
         }
     }
@@ -58,7 +60,6 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
 #endif 
-    bool esp = false, aimbot = false;
 
     // !!! This will get a vtable with functions adresses, but not the vtable of the d3d object in process !!!
     void** vTable = GetD3D9Device();
@@ -66,19 +67,28 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     if (vTable)
     {
         detour* EndSceneDetour = new detour((char*)vTable[42], (char*)hkEndScene, 7);
+        oEndScene = (_EndScene)EndSceneDetour->trampHook();
         // VK_PRIOR = Page Up
         // VK_END = End
         // VK_NEXT = Page dn
         // VK_HOME = home
         // 0x30 = 0 (key)
+        HANDLE aimthr = 0, aimthrfov = 0;
         while (!GetAsyncKeyState(VK_END))
         {
+            if (aimbot || aimbotF || esp) eClient.updateVM();
             if (!eEngine.height && gDevice)
                 GetViewportSize();
             if (GetAsyncKeyState(VK_PRIOR) & 1)
-                eClient.aimSmooth < 15000 ? eClient.aimSmooth += 150 : 0;
+            {
+                eClient.aimSmooth < 100000 ? eClient.aimSmooth += 5000 : 0;
+                printf("[+] Smooth increased is now %d\n", eClient.aimSmooth);
+            }
             if (GetAsyncKeyState(VK_NEXT) & 1)
-                eClient.aimSmooth > 450 ? eClient.aimSmooth -= 150 : 0;
+            {
+                eClient.aimSmooth > 5000 ? eClient.aimSmooth -= 5000 : 0;
+                printf("[-] Smooth decreased is now %d\n", eClient.aimSmooth);
+            }
             /* FOR NO RECOIL CONTROL SMOOTH VALUE
             if (GetAsyncKeyState(VK_MENU))
             {
@@ -91,20 +101,50 @@ DWORD WINAPI internalMain(HMODULE hMod) {
             if (GetAsyncKeyState(0x30) & 1)
             {
                 esp = !esp;
-                if (esp == true)
-                    oEndScene = (_EndScene)EndSceneDetour->trampHook();
+                if (esp)
+                    printf("[O] ESP Activated\n");
                 else
-                    EndSceneDetour->unhook();
+                    printf("[X] ESP Deactivated\n");
             }
             if (GetAsyncKeyState(0x39) & 1)
+            {
                 aimbot = !aimbot;
-            if (aimbot == true)
-                eClient.localPlayer->AimAt(getClosestEntity());
+                if (aimbot == true)
+                {
+                    printf("[O] Simple Aimbot activated (aimfov=?)\n");
+                    aimthr = CreateThread(NULL, 0, aimbotTH, &eClient.aimSmooth, 0, NULL);
+                }
+                else if (aimthr)
+                {
+                    printf("[X] Simple Aimbot deactivated\n");
+                    TerminateThread(aimthr, NULL);
+                }
+            }
+            if (GetAsyncKeyState(0x38) & 1)
+            {
+                aimbotF = !aimbotF;
+                if (aimbotF == true)
+                {
+                    printf("[O] FOV Aimbot activated (aimfov=?)\n");
+                    aimthrfov = CreateThread(NULL, 0, aimbotFOV, &eClient.aimSmooth, 0, NULL);
+                }
+                else if (aimthrfov)
+                {
+                    printf("[X] FOV Aimbot deactivated\n");
+                    TerminateThread(aimthrfov, NULL);
+                }
+            }
+            Sleep(2);
         }
         if (oEndScene != nullptr)
         {
             EndSceneDetour->unhook();
         }
+        if (aimthr)
+            TerminateThread(aimthr, NULL);
+        if (aimthrfov)
+            TerminateThread(aimthrfov, NULL);
+
         delete EndSceneDetour;
     }
 #ifdef _DEBUG

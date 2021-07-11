@@ -8,18 +8,14 @@
 
 IClient eClient;
 IEngine eEngine;
-bool esp = false, aimbot = false, aimbotF = false;
+bool esp = false, aimbot = false, aimbotF = false, rcs = false;
 
 LPDIRECT3DDEVICE9 gDevice;
 // typedef the function prototype of EndScene
-//typedef HRESULT APIENTRY EndScene(LPDIRECT3DDEVICE9);
-// Declare a pointer on this function prototype
-//EndScene *oEndScene = NULL;
-
 typedef HRESULT(__stdcall* _EndScene)(LPDIRECT3DDEVICE9 pDevice);
+// Declare a pointer on this function prototype
 _EndScene oEndScene = nullptr;
 
-//void hkFunc(void) { void }
 HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
     if (!gDevice)
@@ -60,7 +56,6 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
 #endif 
-
     // !!! This will get a vtable with functions adresses, but not the vtable of the d3d object in process !!!
     void** vTable = GetD3D9Device();
     // now we have a vTable with functions addresses(or not)
@@ -68,12 +63,9 @@ DWORD WINAPI internalMain(HMODULE hMod) {
     {
         detour* EndSceneDetour = new detour((char*)vTable[42], (char*)hkEndScene, 7);
         oEndScene = (_EndScene)EndSceneDetour->trampHook();
-        // VK_PRIOR = Page Up
-        // VK_END = End
-        // VK_NEXT = Page dn
-        // VK_HOME = home
-        // 0x30 = 0 (key)
-        HANDLE aimthr = 0, aimthrfov = 0;
+        HANDLE aimthr = 0, aimthrfov = 0, rcsthr = 0;
+        threadShare aimsh = {&eClient.aimSmooth, &aimbot}, aimfovsh = { &eClient.aimSmooth, &aimbotF }, rcssh = { &eClient.rcsSmooth, &rcs };
+
         while (!GetAsyncKeyState(VK_END))
         {
             if (aimbot || aimbotF || esp) eClient.updateVM();
@@ -101,23 +93,27 @@ DWORD WINAPI internalMain(HMODULE hMod) {
             if (GetAsyncKeyState(0x30) & 1)
             {
                 esp = !esp;
-                if (esp)
-                    printf("[O] ESP Activated\n");
-                else
-                    printf("[X] ESP Deactivated\n");
+                esp ? printf("[O] ESP Activated\n") : printf("[X] ESP Deactivated\n");
             }
+
+
+            /*
+                MAYBE AVOID TERMINATE THREAD WHEN STOP FEATURE
+                The threadShare struct contain a pointer to the feature status boolean
+            */
+
             if (GetAsyncKeyState(0x39) & 1)
             {
                 aimbot = !aimbot;
                 if (aimbot == true)
                 {
-                    printf("[O] Simple Aimbot activated (aimfov=?)\n");
-                    aimthr = CreateThread(NULL, 0, aimbotTH, &eClient.aimSmooth, 0, NULL);
+                    aimthr = CreateThread(NULL, 0, aimbotTH, &aimsh, 0, NULL);
+                    printf("[O] Simple Aimbot activated\n");
                 }
                 else if (aimthr)
                 {
-                    printf("[X] Simple Aimbot deactivated\n");
                     TerminateThread(aimthr, NULL);
+                    printf("[X] Simple Aimbot deactivated\n");
                 }
             }
             if (GetAsyncKeyState(0x38) & 1)
@@ -125,13 +121,27 @@ DWORD WINAPI internalMain(HMODULE hMod) {
                 aimbotF = !aimbotF;
                 if (aimbotF == true)
                 {
+                    aimthrfov = CreateThread(NULL, 0, aimbotFOV, &aimfovsh, 0, NULL);
                     printf("[O] FOV Aimbot activated (aimfov=?)\n");
-                    aimthrfov = CreateThread(NULL, 0, aimbotFOV, &eClient.aimSmooth, 0, NULL);
                 }
                 else if (aimthrfov)
                 {
-                    printf("[X] FOV Aimbot deactivated\n");
                     TerminateThread(aimthrfov, NULL);
+                    printf("[X] FOV Aimbot deactivated\n");
+                }
+            }
+            if (GetAsyncKeyState(0x37) & 1)
+            {
+                rcs = !rcs;
+                if (rcs == true)
+                {
+                    printf("[O] Recoil Control System activated\n");
+                    rcsthr = CreateThread(NULL, 0, RCS, &rcssh, 0, NULL);
+                }
+                else if (rcsthr)
+                {
+                    TerminateThread(rcsthr, NULL);
+                    printf("[X] Recoil Control System deactivated\n");
                 }
             }
             Sleep(2);
@@ -144,6 +154,8 @@ DWORD WINAPI internalMain(HMODULE hMod) {
             TerminateThread(aimthr, NULL);
         if (aimthrfov)
             TerminateThread(aimthrfov, NULL);
+        if (rcsthr)
+            TerminateThread(rcsthr, NULL);
 
         delete EndSceneDetour;
     }

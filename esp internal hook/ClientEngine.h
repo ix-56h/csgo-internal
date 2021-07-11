@@ -16,6 +16,7 @@ public:
 
 	pEntity* localPlayer;
 	uint32_t  aimSmooth;
+	uint32_t  rcsSmooth;
 
 	float viewMatrix[16];
 	void updateVM();

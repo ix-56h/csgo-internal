@@ -18,6 +18,7 @@ IClient::IClient()
 
 	maxPlayers = *reinterpret_cast<uint32_t*>(pClientState + ofs::st::dwClientState_MaxPlayer);
 	aimSmooth = 10000;
+	rcsSmooth = 10000;
 	pEntity* lp = *reinterpret_cast<pEntity**>(pLocalPlayer);
 	localPlayer = lp;
 	updateVM();

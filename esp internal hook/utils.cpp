@@ -138,19 +138,21 @@ pEntity* getClosestEntity()
     return (closestPtr);
 }*/
 
-DWORD WINAPI aimbotTH(void* smooth)
+DWORD WINAPI aimbotTH(void* params)
 {
+    threadShare* p = (threadShare*)params;
     while (1)
     {
-        eClient.aimSmooth = *(int*)smooth;
-        eClient.localPlayer->AimAt(getClosestEntity());
+        eClient.aimSmooth = *p->smooth;
+        eClient.localPlayer->shotFired > 1 ? (void)NULL : eClient.localPlayer->AimAt(getClosestEntity());
     }
+    return NULL;
 }
 
 pEntity* getClosestEntityFOV()
 {
     int aimFOV = 10;
-    float lowestHypot = 999;
+    float lowestHypot = 750;
     pEntity* bestTarget = nullptr;
 
     int midX = eEngine.width / 2;
@@ -163,7 +165,7 @@ pEntity* getClosestEntityFOV()
         pEntity* curTarget = *reinterpret_cast<pEntity**>(eClient.pEntityList + (i * 0x10));
 
         if (!curTarget || curTarget == nullptr)
-            continue;
+            break;
 
         if (curTarget->iTeamNum == eClient.localPlayer->iTeamNum || curTarget->iHealth < 1 || curTarget->isDormant)
             continue;
@@ -184,11 +186,32 @@ pEntity* getClosestEntityFOV()
     return bestTarget;
 }
 
-DWORD WINAPI aimbotFOV(void* smooth)
+DWORD WINAPI aimbotFOV(void* params)
 {
+    threadShare* p = (threadShare*)params;
     while (1)
     {
-        eClient.aimSmooth = *(int*)smooth;
-        eClient.localPlayer->AimAt(getClosestEntityFOV());
+        eClient.aimSmooth = *p->smooth;
+        eClient.localPlayer->shotFired > 1 ? (void)NULL : eClient.localPlayer->AimAt(getClosestEntityFOV());
     }
+    return NULL;
+}
+
+DWORD WINAPI RCS(void* params)
+{
+    threadShare* p = (threadShare*)params;
+    Vec3 oPunch = { 0, 0, 0 };
+    while (1)
+    {
+        Vec3 punchAngle = eClient.localPlayer->aimPunchAngle * 2;
+        if (eClient.localPlayer->shotFired > 1)
+        {
+            eClient.rcsSmooth = *p->smooth;
+            Vec3 newAngle = *eEngine.viewAngle + oPunch - punchAngle;
+            newAngle.Normalize();
+            *eEngine.viewAngle = newAngle;
+        }
+        oPunch = punchAngle;
+    }
+    return NULL;
 }
